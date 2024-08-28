@@ -61,8 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 contestStats[contestId]++;
             }
         });
-        console.log(contestStats)
-        res.status(200).json(contestStats);
+         res.status(200).json(contestStats);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'An error occurred while fetching data.' });
