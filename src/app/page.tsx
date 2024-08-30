@@ -4,7 +4,7 @@ import { ChangeEvent, FC, FormEvent, useEffect, useState } from "react";
 interface responsedata {
   [contestId: number]: number;
 }
-const page: FC = () => {
+const Page: FC = () => {
   const [inputvalue, setinputvalue] = useState<string>("");
   const [Error, setError] = useState<string>("");
   const [data, setdata] = useState<responsedata>({});
@@ -112,7 +112,7 @@ const page: FC = () => {
             </thead>
             <tbody>
               {Object.entries(data).map(([contestId, cheatedTimes]) => (
-                <tr className="border-b border-gray-800">
+                <tr key= "cheatedId" className="border-b border-gray-800">
                   <td className="p-3">{contestId}</td>
                   <td className="p-3">
                     <a
@@ -132,4 +132,4 @@ const page: FC = () => {
     </div>
   );
 };
-export default page;
+export default Page;
