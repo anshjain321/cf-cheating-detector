@@ -1,46 +1,55 @@
 "use client";
 import axios, { AxiosError } from "axios";
 import { ChangeEvent, FC, FormEvent, useEffect, useState } from "react";
-interface responsedata {
-  [contestId: number]: number;
+import Router, { useRouter } from "next/navigation";
+interface cheat_data  {
+ contest_id: number,
+ contest_name: string
 }
 const Page: FC = () => {
   const [inputvalue, setinputvalue] = useState<string>("");
-  const [Error, setError] = useState<string>("");
-  const [data, setdata] = useState<responsedata>({});
-  const [show, setshow] = useState<boolean>(false);
-  const [invalid, setinvalid] = useState<boolean>(false);
-  const [user, setuser] = useState<string>();
-  const [table, settable] = useState<boolean>(false);
-  const [buttonLabel, setbuttonLabel] = useState<string>("View cheated contest")
-  const handleinputChange = (e: ChangeEvent<HTMLInputElement>) => {
+   const router = useRouter();
+   const handleinputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setinputvalue(e.target.value);
   };
+
   const HandleCheat = async () => {
     try {
-      const response = await axios.post("/api/getconteststats/route", {
+
+    const stat =   await axios.post("/api/getconteststats/route", {
         userId: inputvalue,
-      });
-      /*  console.log("Response from API:", response.data);  */
-      setdata(response.data);
-      setshow(true);
-      setinvalid(false);
-      setuser(inputvalue);
+      }); 
+      if (stat.status === 400 || stat.status === 500) {
+        console.log("Invalid user ID, not redirecting.");
+        return;
+      }
+     const res = await axios.get("/api/Cheated_db/route");
+     const cheatData: cheat_data[] = res.data;
+     
+     router.push(`/Dashboard/cheated?data=${JSON.stringify(cheatData)}&user_id=${inputvalue}`);
+
     } catch (error) {
       console.error("Error occurred:", error);
       if (error instanceof AxiosError) {
-        setshow(false);
-        setinvalid(true);
-        setError("An error occurred while fetching data.");
-        console.log(Error);
+         console.log("data not added to database")
       }
     }
   };
-  const handleview = async () => {
-    if(table === false) setbuttonLabel("Hide Cheated Contest");
-    else setbuttonLabel("View Cheated Contest");
-    settable(e => e === false ? true : false);
+
+  const HandleUser_details = async () => {
+    try {
+      await axios.post("/api/getconteststats/route", {
+        userId: inputvalue,
+      });
+      
+    } catch (error) {
+      console.error("Error occurred:", error);
+      if (error instanceof AxiosError) {
+         console.log("data not added to database")
+      }
+    }
   };
+  
   return (
     <div className="min-h-screen bg-slate-950 ">
       <div className="flex justify-center lg:m-0 m-5">
@@ -64,71 +73,27 @@ const Page: FC = () => {
           </div>
 
           <div className="flex flex-row justify-evenly mt-10">
+           
             <button
               onClick={HandleCheat}
               className="py-2 px-4 rounded-md bg-blue-500  hover:bg-blue-600 focus:outline-none "
             >
               Cheated?
             </button>
+        
+            <button
+              onClick={HandleUser_details}
+              className="py-2 px-4 rounded-md bg-blue-500  hover:bg-blue-600 focus:outline-none "
+            >
+              user_details
+            </button>
+     
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col justify-center p-5 text-black ">
-        {show ? (
-          Object.keys(data).length === 0 ? (
-            <p className="text-white text-lg text-center" >This is a Legit Account</p>
-          ) : (
-            <p className="text-lg text-white text-center ">
-              {user} has Cheated in {Object.keys(data).length} contest(s)!!!!
-            </p>
-          )
-        ) : (
-          <div></div>
-        )}
-        {invalid ? (
-          <p className="text-white text-lg text-center">Invalid username</p>
-        ) : (
-          <div></div>
-        )}
+   
 
-        <div className="flex justify-center items-center">
-          {show && Object.keys(data).length>0 ? (
-            <button onClick={handleview} className=" px-2 py-4 rounded-lg cursor-pointer text-white font-bold bg-cyan-800 hover:bg-cyan-900 mt-5 ml-2">
-              {buttonLabel}
-            </button>
-          ) : (
-            <div></div>
-          )}
-        </div>
-
-        <div className="flex justify-center items-center p-5">
-          {table?<table className="table-auto border-collapse bg-white rounded-xl w-64">
-            <thead className="font-bold">
-              <tr className="border-b border-gray-800">
-                <th className="p-1">Contest ID</th>
-                <th className="p-3">Link</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(data).map(([contestId, cheatedTimes]) => (
-                <tr key= "cheatedId" className="border-b border-gray-800">
-                  <td className="p-3">{contestId}</td>
-                  <td className="p-3">
-                    <a
-                      href={`https://codeforces.com/submissions/${inputvalue}/contest/${contestId}`}
-                      target="_blank"
-                      className="text-blue-500 underline"
-                    >
-                      View contest
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>:<div></div>}
-        </div>
-      </div>
     </div>
   );
 };
