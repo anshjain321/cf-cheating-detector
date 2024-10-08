@@ -4,7 +4,6 @@ import { ChangeEvent, FC, FormEvent, useEffect, useState } from "react";
 import Router, { useRouter } from "next/navigation";
 interface cheat_data  {
  contest_id: number,
- contest_name: string
 }
 const Page: FC = () => {
   const [inputvalue, setinputvalue] = useState<string>("");
@@ -23,7 +22,9 @@ const Page: FC = () => {
         console.log("Invalid user ID, not redirecting.");
         return;
       }
-     const res = await axios.get("/api/Cheated_db/route");
+     const res = await axios.post("/api/Cheated_db/route" , {
+      user_id: inputvalue,
+     });
      const cheatData: cheat_data[] = res.data;
      
      router.push(`/Dashboard/cheated?data=${JSON.stringify(cheatData)}&user_id=${inputvalue}`);

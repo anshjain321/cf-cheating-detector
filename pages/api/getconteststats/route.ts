@@ -58,7 +58,6 @@ interface Conteststats {
 
 interface User_raw extends RowDataPacket {
     id: number,
-    user_name: string;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -67,19 +66,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const url2 = `https://codeforces.com/api/user.rating?handle=${user_id}`;
 
     try {
-        const problems = await axios.get<Problemstats>(url);
-        const contests = await axios.get<Conteststats>(url2);
         const connection = await pool.getConnection();
-
-        if(problems.data.result.length === 0 || user_id.length <=3  || !isNaN(user_id[0])){
-            return res.status(400).json({message: 'invalid user_name'})
-        }
 
         const [user_row]: [User_raw[], any] = await connection.query('SELECT id FROM Users WHERE user_name = ?', [user_id]);
 
         if (user_row.length > 0 ){
             return res.status(200).json({ message: 'User already inserted' });
         } 
+
+        const problems = await axios.get<Problemstats>(url);
+        const contests = await axios.get<Conteststats>(url2);
+      
+
+        if(!problems.data.result || problems.data.result.length === 0 || user_id.length <= 3 || !isNaN(user_id[0])){
+            return res.status(400).json({message: 'invalid user_name'})
+        }
             await connection.query(
                 'INSERT INTO Users (user_name) values(?)',
                 [user_id]
