@@ -8,8 +8,10 @@ interface cheat_data  {
 const Page: FC = () => {
   const [inputvalue, setinputvalue] = useState<string>("");
    const router = useRouter();
+ const [show, setshow] = useState(false)
    const handleinputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setinputvalue(e.target.value);
+    setshow(false);
   };
 
   const HandleCheat = async () => {
@@ -19,9 +21,10 @@ const Page: FC = () => {
         userId: inputvalue,
       }); 
       if (stat.status === 400 || stat.status === 500) {
-        console.log("Invalid user ID, not redirecting.");
+        setshow(true);
         return;
       }
+      setshow(false);
      const res = await axios.post("/api/Cheated_db/route" , {
       user_id: inputvalue,
      });
@@ -30,8 +33,10 @@ const Page: FC = () => {
      router.push(`/Dashboard/cheated?data=${JSON.stringify(cheatData)}&user_id=${inputvalue}`);
 
     } catch (error) {
+      setshow(true);
       console.error("Error occurred:", error);
       if (error instanceof AxiosError) {
+        setshow(true);
          console.log("data not added to database")
       }
     }
@@ -72,7 +77,7 @@ const Page: FC = () => {
               placeholder="Enter User Id"
             />
           </div>
-
+         
           <div className="flex flex-row justify-evenly mt-10">
            
             <button
@@ -88,8 +93,13 @@ const Page: FC = () => {
             >
               user_details
             </button>
-     
+           
           </div>
+          {show && (
+            <div className="mt-4 text-red-600 text-center">
+              invalid user id
+            </div>
+          )}
         </div>
       </div>
 
