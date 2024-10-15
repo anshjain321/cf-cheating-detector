@@ -102,9 +102,6 @@ const Page: FC = () => {
           )}
         </div>
       </div>
-
-   
-
     </div>
   );
 };
