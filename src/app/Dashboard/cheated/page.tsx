@@ -1,22 +1,55 @@
-'use client'
-import { FC, useState } from "react";
+'use client';
+import { FC, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import axios, { AxiosError } from "axios";
 
-interface dataprops {
+interface DataProps {
   contest_id: number;
   contest_name: string;
 }
 
 const Page: FC = () => {
   const [view, setView] = useState<boolean>(false);
+  const [parsedData, setParsedData] = useState<DataProps[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const params = useSearchParams();
+  const user_id = params?.get("user_id");
+
   const handleView = () => {
     setView(!view);
   };
 
-  const params = useSearchParams();
-  const data = params?.get("data");
-  const user_id = params?.get("user_id");
-  const parsedData: dataprops[] = data ? JSON.parse(decodeURIComponent(data as string)) : [];
+  const data_fetch = async () => {
+    try {
+      const res = await axios.post("/api/Cheated_db/route", {
+        user_id: user_id,
+      });
+      setParsedData(res.data);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      if (error instanceof AxiosError) {
+        setError("Failed to fetch data");
+        console.log("Data not added to the database");
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (user_id) {
+      data_fetch();
+    }
+  }, [user_id]);
+
+  if (loading) {
+    return <div className="text-center text-white">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center text-red-500">{error}</div>;
+  }
 
   return (
     <>
@@ -30,7 +63,7 @@ const Page: FC = () => {
             onClick={handleView}
             className="w-full px-4 py-3 mb-6 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
           >
-            {view ? 'Hide' : 'View'} Contest Details
+            {view ? "Hide" : "View"} Contest Details
           </button>
 
           {view && (
@@ -44,7 +77,12 @@ const Page: FC = () => {
                 </thead>
                 <tbody>
                   {parsedData.map(({ contest_id }, index) => (
-                    <tr key={contest_id} className={`${index % 2 === 0 ? "bg-gray-200" : "bg-gray-100"}`}>
+                    <tr
+                      key={contest_id}
+                      className={`${
+                        index % 2 === 0 ? "bg-gray-200" : "bg-gray-100"
+                      }`}
+                    >
                       <td className="p-3">{contest_id}</td>
                       <td className="p-3">
                         <a

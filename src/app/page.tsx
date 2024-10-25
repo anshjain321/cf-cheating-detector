@@ -25,12 +25,8 @@ const Page: FC = () => {
         return;
       }
       setshow(false);
-     const res = await axios.post("/api/Cheated_db/route" , {
-      user_id: inputvalue,
-     });
-     const cheatData: cheat_data[] = res.data;
      
-     router.push(`/Dashboard/cheated?data=${JSON.stringify(cheatData)}&user_id=${inputvalue}`);
+     router.push(`/Dashboard/cheated?user_id=${inputvalue}`);
 
     } catch (error) {
       setshow(true);
