@@ -57,7 +57,7 @@ interface Conteststats {
 }
 
 interface User_raw extends RowDataPacket {
-    id: number,
+    id: number;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -70,45 +70,62 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const [user_row]: [User_raw[], any] = await connection.query('SELECT id FROM Users WHERE user_name = ?', [user_id]);
 
-        if (user_row.length > 0 ){
-            return res.status(200).json({ message: 'User already inserted' });
-        } 
+        const [problems, contests] = await Promise.all([
+            axios.get<Problemstats>(url),
+            axios.get<Conteststats>(url2)
+        ]);
 
-        const problems = await axios.get<Problemstats>(url);
-        const contests = await axios.get<Conteststats>(url2);
-      
-
-        if(!problems.data.result || problems.data.result.length === 0 || user_id.length <= 3 || !isNaN(user_id[0])){
-            return res.status(400).json({message: 'invalid user_name'})
+        if (!problems.data.result || problems.data.result.length === 0 || user_id.length <= 3 || !isNaN(user_id[0])) {
+            connection.release();
+            return res.status(400).json({ message: 'Invalid username' });
         }
-            await connection.query(
-                'INSERT INTO Users (user_name) values(?)',
-                [user_id]
-            );
 
-          
+        if (user_row.length === 0) {
+            await connection.query('INSERT INTO Users (user_name) VALUES (?)', [user_id]);
             const [newUser]: [User_raw[], any] = await connection.query('SELECT id FROM Users WHERE user_name = ?', [user_id]);
-            const userId = newUser[0].id;
-            await Promise.all( contests.data.result.map((contest) =>{
-                return connection.query(
-                    'INSERT INTO Contests (user_id, contest_id, contest_name, old_rating, new_rating, contest_rank) VALUES (?, ?, ?, ?, ?, ?)',
-                    [userId, contest.contestId, contest.contestName, contest.oldRating, contest.newRating, contest.rank]
-                );
-            }));
-            await Promise.all(
-                problems.data.result.map((problem)=>{
-                    return connection.query(
-                        'INSERT INTO Problems (user_id, lang, verdict, tags, rating, problem_level, contest_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                        [userId, problem.programmingLanguage, problem.verdict, JSON.stringify(problem.problem.tags), problem.problem.rating, problem.problem.index, problem.contestId]
-                    );
-                })
-            
-            )            
-        
+            user_row.push(newUser[0]);
+        }
 
-       return res.status(200).json({ message: 'Database updated successfully' });
-    } catch (error) {
-        console.error('Error:', error);
-      return  res.status(500).json({ message: 'Invalid username or an error occurred' });
-    } 
+        const userId = user_row[0].id;
+        
+        await Promise.all(contests.data.result.map(contest => {
+            return connection.query(
+                `INSERT INTO Contests (user_id, contest_id, contest_name, old_rating, new_rating, contest_rank)
+                 VALUES (?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE 
+                 contest_name = VALUES(contest_name), 
+                 old_rating = VALUES(old_rating), 
+                 new_rating = VALUES(new_rating), 
+                 contest_rank = VALUES(contest_rank)`,
+                [userId, contest.contestId, contest.contestName, contest.oldRating, contest.newRating, contest.rank]
+            ).catch((err: unknown) => {
+                console.error(`Contest insertion error for ${contest.contestId}:`, err);
+            });
+        }));
+
+        await Promise.all(problems.data.result.map(problem => {
+            return connection.query(
+                `INSERT INTO Problems (user_id, problem_name, lang, verdict, tags, rating, problem_level, contest_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE 
+                 problem_name = VALUES(problem_name),
+                 lang = VALUES(lang), 
+                 verdict = VALUES(verdict), 
+                 tags = VALUES(tags), 
+                 rating = VALUES(rating), 
+                 problem_level = VALUES(problem_level),
+                 contest_id = VALUES(contest_id)`,
+                [userId, problem.problem.name, problem.programmingLanguage, problem.verdict, JSON.stringify(problem.problem.tags), problem.problem.rating, problem.problem.index, problem.contestId]
+            ).catch((err: unknown) => {
+                console.error(`Problem insertion error for contest ${problem.contestId}:`, err);
+            });
+        }));
+
+        connection.release();
+        return res.status(200).json({ message: 'Database updated successfully' });
+
+    } catch (err: unknown) {
+        console.error('Error:', err);
+        return res.status(500).json({ message: 'Invalid username or an error occurred' });
+    }
 }

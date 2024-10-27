@@ -43,7 +43,7 @@ const Page: FC = () => {
       await axios.post("/api/getconteststats/route", {
         userId: inputvalue,
       });
-      
+      router.push(`/Dashboard/user_details?user_id=${inputvalue}`);
     } catch (error) {
       console.error("Error occurred:", error);
       if (error instanceof AxiosError) {
