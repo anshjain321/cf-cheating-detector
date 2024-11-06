@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import pool from "@/app/lib/db";
 interface Results {
+    contest_id: number,
     lang: string,
     verdict: string,
     tags: string[],
@@ -31,13 +32,13 @@ export default async function handler(
     const userId = userResult[0].id;
 
     const query = `
-    SELECT distinct problem_name , lang,verdict,tags,rating,problem_level
+    SELECT distinct problem_name , contest_id , lang,verdict,tags,rating,problem_level
     FROM Problems P
     WHERE  P.user_id = ${userId}`;
 
     const [rows]: [Results[], any] = await connection.query(query);
     
-
+    
     res.status(200).send({data: rows});
   } catch (error) {
     console.error("Error retrieving skipped contests:", error);
